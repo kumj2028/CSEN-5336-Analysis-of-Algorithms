@@ -1,0 +1,176 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Welcome to writeLaTeX --- just edit your LaTeX on the left,
+% and we'll compile it for you on the right. If you give
+% someone the link to this page, they can edit at the same
+% time. See the help menu above for more info. Enjoy!
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% --------------------------------------------------------------
+% This is all preamble stuff that you don't have to worry about.
+% Head down to where it says "Start here"
+% --------------------------------------------------------------
+ 
+\documentclass[12pt]{article}
+ 
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amsthm,amssymb}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+%New colors defined below
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+%Code listing style named "mystyle"
+\lstdefinestyle{mystyle}{
+  backgroundcolor=\color{backcolour}, commentstyle=\color{codegreen},
+  keywordstyle=\color{magenta},
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\footnotesize,
+  breakatwhitespace=false,         
+  breaklines=true,                 
+  captionpos=b,                    
+  keepspaces=true,                 
+  numbers=left,                    
+  numbersep=5pt,                  
+  showspaces=false,                
+  showstringspaces=false,
+  showtabs=false,                  
+  tabsize=2
+}
+
+%"mystyle" code listing set
+\lstset{style=mystyle}
+
+ 
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+ 
+\newenvironment{theorem}[2][Theorem]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{lemma}[2][Lemma]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{exercise}[2][Exercise]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{problem}[2][Problem]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{question}[2][Question]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{corollary}[2][Corollary]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+
+\newenvironment{solution}{\begin{proof}[Solution]}{\end{proof}}
+ 
+\begin{document}
+ 
+% --------------------------------------------------------------
+%                         Start here
+% --------------------------------------------------------------
+ 
+\title{Project 2}%replace X with the appropriate number
+\author{Mengxiang Jiang\\ %replace with your name
+CSEN 5336 Analysis of Algorithms} %if necessary, replace with your course title
+ 
+\maketitle
+ 
+\begin{problem}{1} %You can use theorem, exercise, problem, or question here.  Modify x.yz to be whatever number you are proving
+Two DNA strands of length 100 (number of bases in the sequence) are given in DNA1.txt and
+DNA2.txt file.\\\\
+a) Find the longest common subsequence (LCS) between the two sequences using dynamic
+programming bottom-up (tabulation) approach. Submit your code to solve the problem.
+How much time (in seconds or milliseconds) is required by your computer to run the
+algorithm?
+\begin{lstlisting}[language=Python, caption=Find LCS Bottom Up]
+def lcs_bottom_up(s1, s2):
+    c = [[0]*len(s2) for i in range(len(s1))]
+    s = [['']*len(s2) for i in range(len(s1))]
+
+    for i in range(1, len(s1)):
+        for j in range(1, len(s2)):
+            if s1[i] == s2[j]:
+                c[i][j] = c[i-1][j-1] + 1
+                s[i][j] = s[i-1][j-1] + s1[i]
+            else:
+                if c[i][j-1] > c[i-1][j]:
+                    c[i][j] = c[i][j-1]
+                    s[i][j] = s[i][j-1]
+                else:
+                    c[i][j] = c[i-1][j]
+                    s[i][j] = s[i-1][j]
+    return s[-1][-1]
+\end{lstlisting}
+\pagebreak
+b) Solve the same LCS problem using dynamic programming top-down (memorization)
+approach. Submit your code to solve the problem. How much time (in seconds or
+milliseconds) is required by your computer to run the algorithm.
+\begin{lstlisting}[language=Python, caption=Find LCS Top Down]
+def lcs_top_down(s1, s2):
+    memo = [[-1]*len(s2) for i in range(len(s1))]
+    result = [['']*len(s2) for i in range(len(s1))]
+    def lcs(i, j):
+        if i == 0:
+            return 0
+        if j == 0:
+            return 0
+        if memo[i][j] != -1:
+            return memo[i][j]
+        if s1[i] == s2[j]:
+            memo[i][j] = 1 + lcs(i-1, j-1)
+            result[i][j] = result[i-1][j-1] + s1[i]
+            return memo[i][j]
+        else:
+            a = lcs(i, j-1)
+            b = lcs(i-1, j)
+            if a > b:
+                memo[i][j] = a
+                result[i][j] = result[i][j-1]
+            else:
+                memo[i][j] = b
+                result[i][j] = result[i-1][j]
+            return memo[i][j]
+    lcs(len(s1)-1, len(s2)-1)
+    return result[-1][-1]
+\end{lstlisting}
+c) Which solution is faster and why? Discuss your solutions
+\begin{lstlisting}[language=Python, caption=main function code]
+if __name__ == '__main__':
+    s1 = ''
+    s2 = ''
+    with open('DNA1.txt', 'r') as f:
+        s1 = f.read().rstrip()
+    with open('DNA2.txt', 'r') as f:
+        s2 = f.read().rstrip()
+    import time
+    bottom_up_start = time.perf_counter()
+    bottom_up_result = lcs_bottom_up(s1, s2)
+    bottom_up_end = time.perf_counter()
+    print("Bottom up took %f seconds and result is %s"
+    % (bottom_up_end-bottom_up_start, bottom_up_result))
+    top_down_start = time.perf_counter()
+    top_down_result = lcs_top_down(s1, s2)
+    top_down_end = time.perf_counter()
+    print("Top down took %f seconds and result is %s"
+    % (top_down_end-top_down_start, top_down_result))
+\end{lstlisting}
+
+\begin{lstlisting}[language=C, caption=Terminal output running code]
+$ python3 lcs.py 
+Bottom up took 0.002600 seconds and result is TCTTTTTCTTTGTTTGGCACCGTTGCGGCTACCTTGCAGCTCTGCATCTTGGCTCTACTGCACT
+Top down took 0.003055 seconds and result is TCTTTTTCTTTGTTTGGCACCGTTGCGGCTACCTTGCAGCTCTGCATCTTGGCTCTACTGCACT
+\end{lstlisting}
+The bottom up solution is about 15\% faster than the top down solution. This is probably due to not requiring context switching and a recursive stack.
+The filling out the table is also more straightforward compared to the memoization, which could also contribute to the speed.
+
+\end{problem}
+
+% --------------------------------------------------------------
+%     You don't have to mess with anything below this line.
+% --------------------------------------------------------------
+ 
+\end{document}
