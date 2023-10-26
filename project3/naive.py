@@ -1,5 +1,3 @@
-import time
-
 def naive(text, pattern):
     matches = []
     for i in range(0, len(text) - len(pattern)):
@@ -12,6 +10,7 @@ def naive(text, pattern):
             matches.append(i)
     return matches
 
+import time
 if __name__ == '__main__':
     text = ''
     patterns = ['ACT', 'GATTACA', 'CATCATCATCAT']

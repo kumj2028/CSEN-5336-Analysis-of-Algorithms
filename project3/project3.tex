@@ -98,6 +98,7 @@ def naive(text, pattern):
     return matches
 \end{lstlisting}
 \begin{lstlisting}[language=Python, caption=main function code]
+import time
 if __name__ == '__main__':
     text = ''
     patterns = ['ACT', 'GATTACA', 'CATCATCATCAT']
@@ -110,6 +111,7 @@ if __name__ == '__main__':
             end_time = time.perf_counter()
             print(f'For {fname} and pattern {pattern}, the naive algorithm took {end_time-start_time} seconds with {len(matches)} matches')
 \end{lstlisting}
+Note: the main function code is similar for running all the algorithms.
 \pagebreak
 \begin{lstlisting}[language=C, caption=Terminal output running code]
 $ python naive.py
@@ -135,8 +137,8 @@ Even though the time complexity of the naive algorithm is $O((n-m+1)m)$ in the w
 \begin{problem}{2} %You can use theorem, exercise, problem, or question here.  Modify x.yz to be whatever number you are proving
     Repeat the previous problem with the Rabin-Karp algorithm.
 \begin{lstlisting}[language=Python, caption=Rabin-Karp algorithm]
-alpha = {'A': 0, 'T' : 1, 'G' : 2, 'C' : 3}
-pmod = 13
+SigMap = {'A': 0, 'T' : 1, 'G' : 2, 'C' : 3}
+PriMod = 13
 
 def rabin_karp(text, pattern):
     matches = []
@@ -144,11 +146,11 @@ def rabin_karp(text, pattern):
     phash = rabin_hash(pattern)
     for i in range(0, len(text) - len(pattern)):
         if i == 0:
-            texthash = rabin_hash(text[0:len(pattern)])
+            thash = rabin_hash(text[0:len(pattern)])
         else:
-            texthash = roll(plen, texthash, 
+            thash = roll(plen, thash, 
                             text[i - 1], text[i + plen - 1])
-        if texthash == phash:
+        if thash == phash:
             if text[i:i+plen] == pattern:
                 matches.append(i)
     return matches
@@ -156,32 +158,18 @@ def rabin_karp(text, pattern):
 def rabin_hash(text):
     rhash = 0
     for c in text:
-        rhash = (rhash * len(alpha) % pmod + alpha[c]) % pmod
+        rhash = (rhash * len(SigMap) % PriMod + SigMap[c]) % PriMod
     return rhash
 
 def roll(plen, oldhash, oldchar, newchar):
-    newhash = ((oldhash + pmod 
-                - alpha[oldchar] * (len(alpha) ** (plen - 1)) % pmod) 
-                * len(alpha) + alpha[newchar]) % pmod
+    newhash = ((oldhash + PriMod 
+                - SigMap[oldchar] * (len(SigMap) ** (plen - 1)) % PriMod) 
+                * len(SigMap) + SigMap[newchar]) % PriMod
     return newhash
-\end{lstlisting}
-
-\begin{lstlisting}[language=Python, caption=main function code]
-if __name__ == '__main__':
-    text = ''
-    patterns = ['ACT', 'GATTACA', 'CATCATCATCAT']
-    for fname in ['DNA1.txt', 'DNA2.txt', 'DNA3.txt','DNA4.txt', 'DNA5.txt']:
-        with open(fname, 'r') as f:
-            text = f.read().rstrip()
-        for pattern in patterns:
-            start_time = time.perf_counter()
-            matches = rabin_karp(text, pattern)
-            end_time = time.perf_counter()
-            print(f'For {fname} and pattern {pattern}, the Rabin-Karp algorithm took {end_time-start_time} seconds with {len(matches)} matches')
 \end{lstlisting}
 \pagebreak
 \begin{lstlisting}[language=C, caption=Terminal output running code]
-$ python rabinkarp.py 
+$ python rabin_karp.py 
     For DNA1.txt and pattern ACT, the Rabin-Karp algorithm took 0.639081138993788 seconds with 65495 matches
     For DNA1.txt and pattern GATTACA, the Rabin-Karp algorithm took 0.6668751739998697 seconds with 242 matches
     For DNA1.txt and pattern CATCATCATCAT, the Rabin-Karp algorithm took 0.7319347989978269 seconds with 0 matches
@@ -204,71 +192,137 @@ Despite having better expected time complexity of $O(n)$ compared to the naive a
 \pagebreak
 \begin{problem}{3} %You can use theorem, exercise, problem, or question here.  Modify x.yz to be whatever number you are proving
     Repeat the previous problem with the finite automata algorithm.
-\begin{lstlisting}[language=Python, caption=Rabin-Karp algorithm]
-alpha = {'A': 0, 'T' : 1, 'G' : 2, 'C' : 3}
-pmod = 13
+\begin{lstlisting}[language=Python, caption=finite automata algorithm]
+SigMap = {'A': 0, 'T' : 1, 'G' : 2, 'C' : 3}
 
-def rabin_karp(text, pattern):
+def finite_automata(text, pattern):
     matches = []
-    plen = len(pattern)
-    phash = rabin_hash(pattern)
-    for i in range(0, len(text) - len(pattern)):
-        if i == 0:
-            texthash = rabin_hash(text[0:len(pattern)])
-        else:
-            texthash = roll(plen, texthash, 
-                            text[i - 1], text[i + plen - 1])
-        if texthash == phash:
-            if text[i:i+plen] == pattern:
-                matches.append(i)
+    m = len(pattern)
+    tf = computeTF(pattern)
+
+    state = 0
+    for i in range(len(text)):
+        state = tf[state][SigMap[text[i]]]
+        if state == m:
+            matches.append(i-m+1)
+    
     return matches
 
-def rabin_hash(text):
-    rhash = 0
-    for c in text:
-        rhash = (rhash * len(alpha) % pmod + alpha[c]) % pmod
-    return rhash
+def computeTF(pattern):
+    m = len(pattern)
+    tf = [[0 for i in range(len(SigMap))] for j in range(m + 1)]
+    for state in range(m + 1):
+        for c in SigMap:
+            nextState = getNextState(pattern, state, c)
+            tf[state][SigMap[c]] = nextState
+    return tf
 
-def roll(plen, oldhash, oldchar, newchar):
-    newhash = ((oldhash + pmod 
-                - alpha[oldchar] * (len(alpha) ** (plen - 1)) % pmod) 
-                * len(alpha) + alpha[newchar]) % pmod
-    return newhash
+def getNextState(pattern, state, c):
+    # c matches next character in pattern
+    if state < len(pattern) and c == pattern[state]:
+        return state + 1
+    
+    # find longest prefix which is also the suffix
+    # of pattern[0:nextState]
+    i = 0
+    for nextState in range(state, 0, -1):
+        if pattern[nextState-1] == c:
+            while (i < nextState - 1):
+                pfxidx = state - nextState + 1 + i
+                if pattern[i] != pattern[pfxidx]:
+                    break
+                i += 1
+            if i == nextState - 1:
+                return nextState
+    return 0
 \end{lstlisting}
+\pagebreak
 
-\begin{lstlisting}[language=Python, caption=main function code]
-if __name__ == '__main__':
-    text = ''
-    patterns = ['ACT', 'GATTACA', 'CATCATCATCAT']
-    for fname in ['DNA1.txt', 'DNA2.txt', 'DNA3.txt','DNA4.txt', 'DNA5.txt']:
-        with open(fname, 'r') as f:
-            text = f.read().rstrip()
-        for pattern in patterns:
-            start_time = time.perf_counter()
-            matches = rabin_karp(text, pattern)
-            end_time = time.perf_counter()
-            print(f'For {fname} and pattern {pattern}, the Rabin-Karp algorithm took {end_time-start_time} seconds with {len(matches)} matches')
+\begin{lstlisting}[language=C, caption=Terminal output running code]
+$ python finite_automata.py 
+    For DNA1.txt and pattern ACT, the finite automata algorithm took 0.15551975400012452 seconds with 65495 matches
+    For DNA1.txt and pattern GATTACA, the finite automata algorithm took 0.14494252900476567 seconds with 242 matches
+    For DNA1.txt and pattern CATCATCATCAT, the finite automata algorithm took 0.14850315799412783 seconds with 0 matches
+    For DNA2.txt and pattern ACT, the finite automata algorithm took 0.30578777501068544 seconds with 131034 matches
+    For DNA2.txt and pattern GATTACA, the finite automata algorithm took 0.29742643699864857 seconds with 491 matches
+    For DNA2.txt and pattern CATCATCATCAT, the finite automata algorithm took 0.2898057919956045 seconds with 1 matches
+    For DNA3.txt and pattern ACT, the finite automata algorithm took 0.6287656860076822 seconds with 262192 matches
+    For DNA3.txt and pattern GATTACA, the finite automata algorithm took 0.59431980199588 seconds with 1002 matches
+    For DNA3.txt and pattern CATCATCATCAT, the finite automata algorithm took 0.5852815399994142 seconds with 1 matches
+    For DNA4.txt and pattern ACT, the finite automata algorithm took 1.2557424819970038 seconds with 524454 matches
+    For DNA4.txt and pattern GATTACA, the finite automata algorithm took 1.202983769995626 seconds with 1976 matches
+    For DNA4.txt and pattern CATCATCATCAT, the finite automata algorithm took 1.1666112150123809 seconds with 5 matches
+    For DNA5.txt and pattern ACT, the finite automata algorithm took 2.4493759730103193 seconds with 1050689 matches
+    For DNA5.txt and pattern GATTACA, the finite automata algorithm took 2.3914340260089375 seconds with 4161 matches
+    For DNA5.txt and pattern CATCATCATCAT, the finite automata algorithm took 2.339489956997568 seconds with 3 matches
+\end{lstlisting}
+The finite automata algorithm performs faster than both the naive and Rabin-Karp algorithms, and also seems truly independent of the length of the pattern, peforming about the same or even quicker in the longer patterns.
+\end{problem}
+
+\pagebreak
+\begin{problem}{4} %You can use theorem, exercise, problem, or question here.  Modify x.yz to be whatever number you are proving
+    Repeat the previous problem with the Knuth-Morris-Pratt(KMP) algorithm.
+\begin{lstlisting}[language=Python, caption=Knuth-Morris-Pratt algorithm]
+def kmp(text, pattern):
+    matches = []
+    m = len(pattern)
+    n = len(text)
+    pfxfun = getPrefixFunction(pattern)
+    i = 0
+    j = 0
+
+    while i < n:
+        if text[i] == pattern[j]:
+            i += 1
+            j += 1
+            if j == m:
+                matches.append(i-j)
+                j = pfxfun[j-1]
+        else:
+            if j > 0:
+                j = pfxfun[j-1]
+            else:
+                i += 1
+
+    return matches
+
+def getPrefixFunction(pattern):
+    pfxfun = [0 for i in range(len(pattern))]
+    i = 1
+    j = 0
+    while i < len(pattern):
+        if pattern[i] == pattern[j]:
+            j += 1
+            pfxfun[i] = j
+            i += 1
+        else:
+            if j != 0:
+                j = pfxfun[j - 1]
+            else:
+                pfxfun[i] = 0
+                i += 1
+    return pfxfun
 \end{lstlisting}
 \pagebreak
 \begin{lstlisting}[language=C, caption=Terminal output running code]
-$ python rabinkarp.py 
-    For DNA1.txt and pattern ACT, the Rabin-Karp algorithm took 0.639081138993788 seconds with 65495 matches
-    For DNA1.txt and pattern GATTACA, the Rabin-Karp algorithm took 0.6668751739998697 seconds with 242 matches
-    For DNA1.txt and pattern CATCATCATCAT, the Rabin-Karp algorithm took 0.7319347989978269 seconds with 0 matches
-    For DNA2.txt and pattern ACT, the Rabin-Karp algorithm took 1.2784735669993097 seconds with 131034 matches
-    For DNA2.txt and pattern GATTACA, the Rabin-Karp algorithm took 1.3436157860051026 seconds with 491 matches
-    For DNA2.txt and pattern CATCATCATCAT, the Rabin-Karp algorithm took 1.4682704229999217 seconds with 1 matches
-    For DNA3.txt and pattern ACT, the Rabin-Karp algorithm took 2.5847115970027517 seconds with 262192 matches
-    For DNA3.txt and pattern GATTACA, the Rabin-Karp algorithm took 2.6529827709964593 seconds with 1002 matches
-    For DNA3.txt and pattern CATCATCATCAT, the Rabin-Karp algorithm took 2.936001311005384 seconds with 1 matches
-    For DNA4.txt and pattern ACT, the Rabin-Karp algorithm took 5.080261541996151 seconds with 524454 matches
-    For DNA4.txt and pattern GATTACA, the Rabin-Karp algorithm took 5.316721924995363 seconds with 1976 matches
-    For DNA4.txt and pattern CATCATCATCAT, the Rabin-Karp algorithm took 5.90457762600272 seconds with 5 matches
-    For DNA5.txt and pattern ACT, the Rabin-Karp algorithm took 10.213705198999378 seconds with 1050689 matches
-    For DNA5.txt and pattern GATTACA, the Rabin-Karp algorithm took 10.634073597997485 seconds with 4161 matches
-    For DNA5.txt and pattern CATCATCATCAT, the Rabin-Karp algorithm took 11.496143873002438 seconds with 3 matches
+    $ python kmp.py 
+    For DNA1.txt and pattern ACT, the Knuth-Morris-Pratt algorithm took 0.2486665429896675 seconds with 65495 matches
+    For DNA1.txt and pattern GATTACA, the Knuth-Morris-Pratt algorithm took 0.2490224240027601 seconds with 242 matches
+    For DNA1.txt and pattern CATCATCATCAT, the Knuth-Morris-Pratt algorithm took 0.24674882799445186 seconds with 0 matches
+    For DNA2.txt and pattern ACT, the Knuth-Morris-Pratt algorithm took 0.4929636379965814 seconds with 131034 matches
+    For DNA2.txt and pattern GATTACA, the Knuth-Morris-Pratt algorithm took 0.4923475959949428 seconds with 491 matches
+    For DNA2.txt and pattern CATCATCATCAT, the Knuth-Morris-Pratt algorithm took 0.49851692000811454 seconds with 1 matches
+    For DNA3.txt and pattern ACT, the Knuth-Morris-Pratt algorithm took 0.9728445020009531 seconds with 262192 matches
+    For DNA3.txt and pattern GATTACA, the Knuth-Morris-Pratt algorithm took 0.7028228560084244 seconds with 1002 matches
+    For DNA3.txt and pattern CATCATCATCAT, the Knuth-Morris-Pratt algorithm took 0.704158250009641 seconds with 1 matches
+    For DNA4.txt and pattern ACT, the Knuth-Morris-Pratt algorithm took 1.40684947000409 seconds with 524454 matches
+    For DNA4.txt and pattern GATTACA, the Knuth-Morris-Pratt algorithm took 1.424388044004445 seconds with 1976 matches
+    For DNA4.txt and pattern CATCATCATCAT, the Knuth-Morris-Pratt algorithm took 1.4213517800089903 seconds with 5 matches
+    For DNA5.txt and pattern ACT, the Knuth-Morris-Pratt algorithm took 2.793876569994609 seconds with 1050689 matches
+    For DNA5.txt and pattern GATTACA, the Knuth-Morris-Pratt algorithm took 2.8016387920069974 seconds with 4161 matches
+    For DNA5.txt and pattern CATCATCATCAT, the Knuth-Morris-Pratt algorithm took 2.790721905999817 seconds with 3 matches
 \end{lstlisting}
-Despite having better expected time complexity of $O(n)$ compared to the naive algorithm, Rabin-Karp appears to be about twice as slow for these examples.
+The Knuth-Morris-Pratt algorithm performs faster than both the naive and Rabin-Karp algorithms but slower than the finite automata. It also seems independent of the length of the pattern like finite automata. It might be slower than finite automata because it does more comparisons per character of the text.
 \end{problem}
 
 % --------------------------------------------------------------
